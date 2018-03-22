@@ -1,0 +1,13 @@
+nav > ul {
+    list-style: none;
+    padding: 0;
+    li {
+        display:inline-block;
+    }
+}
+nav > div {
+    display: inline-block;
+}
+nav {
+    flex: 100%;
+}
