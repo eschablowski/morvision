@@ -122,7 +122,7 @@ app.post('/annotationTools/php/getpackfile.php', function (req, res) {
     archive.file(imgurl, { name: imgname });
     archive.file(xmlurl, { name: xmlname });
     var masks = fg.sync(path.relative(process.cwd(), toolHome('Masks', folder, imgname.substring(0, imgname.length - 4) + '_mask_*')));
-    
+
     archive.glob(path.relative(process.cwd(), toolHome('Masks', folder, imgname.substring(0, imgname.length - 4) + '_mask_*')));
     archive.glob(path.relative(process.cwd(), toolHome('Scribbles', folder, imgname.substring(0, imgname.length - 4) + '_scribble_*')));
 
@@ -324,7 +324,12 @@ app.post('/annotationTools/perl/submit.cgi', function (req, res) {
     var newName = req.body.annotation.private[0].new_name[0];
     var modifiedControlPoints = req.body.annotation.private[0].modified_cpts[0];
     var videoMode = req.body.annotation.private[0].video[0];
-    // TO DO: insert imagesize (failsafe)
+    if (!req.body.annotation.imagesize) {
+        req.body.annotation.imagesize = {
+            ncols: [require('child_process').spawnSync('identify', ['-format', '"%h"', toolHome('Images', foldername, filename + '.jpg')]).stdout.toString().replace(/\D/g, '')],
+            nrows: [require('child_process').spawnSync('identify', ['-format', '"%w"', toolHome('Images', foldername, filename + '.jpg')]).stdout.toString().replace(/\D/g, '')]
+        };
+    }
     var p = toolHome('Annotations');
     var tmpPath = toolHome('annotationCache', 'TmpAnnotations');
     fs.writeFile(path.join(tmpPath, foldername, filename + '.xml'), toXML(req.body), function (err) {

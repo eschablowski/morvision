@@ -905,12 +905,16 @@
     </segm>
   </object>
   <private>
-    <global_count>31</global_count>
-    <pri_username>eschablowski</pri_username>
-    <edited>0</edited>
+    <global_count>0</global_count>
+    <pri_username>abc</pri_username>
+    <edited>1</edited>
     <old_name>power cube</old_name>
     <new_name>power cube</new_name>
     <modified_cpts>cpts_not_modified</modified_cpts>
     <video>0</video>
   </private>
+  <imagesize>
+    <nrows>1280</nrows>
+    <ncols>720</ncols>
+  </imagesize>
 </annotation>

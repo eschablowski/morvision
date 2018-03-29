@@ -1,3 +1,10 @@
 [submodule "models"]
 	path = models
 	url = https://github.com/tensorflow/models
+[submodule "tf"]
+	path = tf
+	url = https://github.com/tensorflow/tensorflow
+[submodule "custom"]
+	path = custom
+	url = https://github.com/matterport/Mask_RCNN
+	
