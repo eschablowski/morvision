@@ -9,6 +9,12 @@
 Look at guides [here](tensorflow.org/install).
 > Sources are included in the tf folder and can be installed by following [this](tensorflow.org/install/install_sources) guide.
 
+#### MKL Support
+
+Install from sources and add `--config=mkl` to the bazel build
+> Please see [tensorflow.org](https://www.tensorflow.org/performance/performance_guide#optimizing_for_cpu) for more information
+> MKL can be installed by adding `deb https://apt.repos.intel.com/mkl all main` to `/etc/apt/sources.list/d/intelproducts.list` (Note that `/intelpython`, `/ipp`, `/tbb`, and `/daal` also exist on `apt.repos.intel.com`, although `/intelpython` is down as of April 16th, 2018, see [intel.com](https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-apt-repo))
+
 ### Object Detector
 
 1. run
