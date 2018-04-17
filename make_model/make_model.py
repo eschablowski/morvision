@@ -112,13 +112,12 @@ def create_tf_example(image, include_masks):
     encoded_mask_png = []
     attributes = []
     for object_annotations in image['annotations']:
+        attributes.append(object_annotations['attributes'])
         xmin.append(float(object_annotations['bbox']['xmin']))
         xmax.append(float(object_annotations['bbox']['xmax']))
         ymin.append(float(object_annotations['bbox']['ymin']))
         ymax.append(float(object_annotations['bbox']['ymax']))
         category_ids.append(int(object_annotations['name']))
-        attributes.append(tf.train.Feature(
-            int64_list=tf.train.Int64List(value=object_annotations['attributes'])))
         if include_masks:
             output_io = io.BytesIO(object_annotations['mask'])
             encoded_mask_png.append(output_io.getvalue())
@@ -148,7 +147,7 @@ def create_tf_example(image, include_masks):
         'image/object/class/label':
             dataset_util.int64_list_feature(category_ids),
         # 'image/object/class/attributes':
-        #     tf.train.FeatureList(feature=attributes)
+        #     dataset_util.int64_list_feature(category_ids)
     }
     if include_masks:
         feature_dict['image/object/mask'] = (
@@ -189,15 +188,17 @@ def readAnnotations(
             else:
                 labels.append(obj['name'])
                 id = labels.index(obj['name']) + 1
-            attr = []
+            attr = 0
             if (obj['attributes'] is not None):
-                obj['attributes'] = obj['attributes'].split(',')
-                for attribute in obj['attributes']:
-                    if(labels.__contains__(attribute)):
-                        attr.append(attributes.index(attribute) + 1)
-                    else:
-                        attributes.append(attribute)
-                        attr.append(attributes.index(attribute) + 1)
+                obj['attributes'] = obj['attributes'].split(
+                    ',')
+                obj['attributes'].sort()
+                obj['attributes'] = ','.join(iter(obj['attributes']))
+                if(attributes.__contains__(obj['attributes'])):
+                    attr = attributes.index(obj['attributes']) + 1
+                else:
+                    attributes.append(obj['attributes'])
+                    attr = attributes.index(obj['attributes']) + 1
             ann = {
                 'bbox': {
                     'xmin': float(float(obj['segm']['box']['xmin']) / float(data['imagesize']['ncols'])),
@@ -253,199 +254,199 @@ def annotationsToExamples(annotations_dir, image_dir, output_path, masks_dir):
     label_map_util.save_label_map_dict(os.path.join(
         output_path, 'attributes.pbtxt'), attributes)
     with tf.gfile.GFile(os.path.join(
-            output_path, 'attributes.pbtxt'), 'wb') as fid:
-        fid.write("""
-# Embedded SSD with Mobilenet v1 configuration for MSCOCO Dataset.
-# Users should configure the fine_tune_checkpoint field in the train config as
-# well as the label_map_path and input_path fields in the train_input_reader and
-# eval_input_reader. Search for "PATH_TO_BE_CONFIGURED" to find the fields that
-# should be configured.
+            output_path, 'pipeline.config'), 'wb') as fid:
+        fid.write("\n\
+# Embedded SSD with Mobilenet v1 configuration for MSCOCO Dataset.\n\
+# Users should configure the fine_tune_checkpoint field in the train config as\n\
+# well as the label_map_path and input_path fields in the train_input_reader and\n\
+# eval_input_reader. Search for  to find the fields that\n\
+# should be configured.\n\
+\n\
+model {\n\
+  ssd {\n\
+    num_classes: " + str(len(labels)) + "\n\
+    box_coder {\n\
+      faster_rcnn_box_coder {\n\
+        y_scale: 10.0\n\
+        x_scale: 10.0\n\
+        height_scale: 5.0\n\
+        width_scale: 5.0\n\
+      }\n\
+    }\n\
+    matcher {\n\
+      argmax_matcher {\n\
+        matched_threshold: 0.5\n\
+        unmatched_threshold: 0.5\n\
+        ignore_thresholds: false\n\
+        negatives_lower_than_unmatched: true\n\
+        force_match_for_each_row: true\n\
+      }\n\
+    }\n\
+    similarity_calculator {\n\
+      iou_similarity {\n\
+      }\n\
+    }\n\
+    anchor_generator {\n\
+      ssd_anchor_generator {\n\
+        num_layers: 5\n\
+        min_scale: 0.2\n\
+        max_scale: 0.95\n\
+        aspect_ratios: 1.0\n\
+        aspect_ratios: 2.0\n\
+        aspect_ratios: 0.5\n\
+        aspect_ratios: 3.0\n\
+        aspect_ratios: 0.3333\n\
+      }\n\
+    }\n\
+    image_resizer {\n\
+      fixed_shape_resizer {\n\
+        height: 256\n\
+        width: 256\n\
+      }\n\
+    }\n\
+    box_predictor {\n\
+      convolutional_box_predictor {\n\
+        min_depth: 0\n\
+        max_depth: 0\n\
+        num_layers_before_predictor: 0\n\
+        use_dropout: false\n\
+        dropout_keep_probability: 0.8\n\
+        kernel_size: 1\n\
+        box_code_size: 4\n\
+        apply_sigmoid_to_scores: false\n\
+        conv_hyperparams {\n\
+          activation: RELU_6,\n\
+          regularizer {\n\
+            l2_regularizer {\n\
+              weight: 0.00004\n\
+            }\n\
+          }\n\
+          initializer {\n\
+            truncated_normal_initializer {\n\
+              stddev: 0.03\n\
+              mean: 0.0\n\
+            }\n\
+          }\n\
+          batch_norm {\n\
+            train: true,\n\
+            scale: true,\n\
+            center: true,\n\
+            decay: 0.9997,\n\
+            epsilon: 0.001,\n\
+          }\n\
+        }\n\
+      }\n\
+    }\n\
+    feature_extractor {\n\
+      type: 'embedded_ssd_mobilenet_v1'\n\
+      min_depth: 16\n\
+      depth_multiplier: 0.125\n\
+      conv_hyperparams {\n\
+        activation: RELU_6,\n\
+        regularizer {\n\
+          l2_regularizer {\n\
+            weight: 0.00004\n\
+          }\n\
+        }\n\
+        initializer {\n\
+          truncated_normal_initializer {\n\
+            stddev: 0.03\n\
+            mean: 0.0\n\
+          }\n\
+        }\n\
+        batch_norm {\n\
+          train: true,\n\
+          scale: true,\n\
+          center: true,\n\
+          decay: 0.9997,\n\
+          epsilon: 0.001,\n\
+        }\n\
+      }\n\
+    }\n\
+    loss {\n\
+      classification_loss {\n\
+        weighted_sigmoid {\n\
+        }\n\
+      }\n\
+      localization_loss {\n\
+        weighted_smooth_l1 {\n\
+        }\n\
+      }\n\
+      hard_example_miner {\n\
+        num_hard_examples: 3000\n\
+        iou_threshold: 0.99\n\
+        loss_type: CLASSIFICATION\n\
+        max_negatives_per_positive: 3\n\
+        min_negatives_per_image: 0\n\
+      }\n\
+      classification_weight: 1.0\n\
+      localization_weight: 1.0\n\
+    }\n\
+    normalize_loss_by_num_matches: true\n\
+    post_processing {\n\
+      batch_non_max_suppression {\n\
+        score_threshold: 1e-8\n\
+        iou_threshold: 0.6\n\
+        max_detections_per_class: 100\n\
+        max_total_detections: 100\n\
+      }\n\
+      score_converter: SIGMOID\n\
+    }\n\
+  }\n\
+}\n\
+\n\
+train_config: {\n\
+  batch_size: 32\n\
+  optimizer {\n\
+    rms_prop_optimizer: {\n\
+      learning_rate: {\n\
+        exponential_decay_learning_rate {\n\
+          initial_learning_rate: 0.004\n\
+          decay_steps: 800720\n\
+          decay_factor: 0.95\n\
+        }\n\
+      }\n\
+      momentum_optimizer_value: 0.9\n\
+      decay: 0.9\n\
+      epsilon: 1.0\n\
+    }\n\
+  }\n\
+#  fine_tune_checkpoint: \n\
+  data_augmentation_options {\n\
+    random_horizontal_flip {\n\
+    }\n\
+  }\n\
+  data_augmentation_options {\n\
+    ssd_random_crop {\n\
+    }\n\
+  }\n\
+}\n\
+\n\
+train_input_reader: {\n\
+  tf_record_input_reader {\n\
+    input_path: " + '"' + os.path.join(output_path, 'output.record') + '"' + "\n\
+  }\n\
+  label_map_path: " + '"' + os.path.join(output_path, 'labelmap.pbtxt') + '"' + "\n\
+}\n\
+\n\
+eval_config: {\n\
+  num_examples: 8000\n\
+  use_moving_averages: true\n\
+}\n\
+\n\
+eval_input_reader: {\n\
+  tf_record_input_reader {\n\
+    input_path: " + '"' + os.path.join(output_path, 'output.record') + '"' + "\n\
+  }\n\
+  label_map_path: " + '"' + os.path.join(output_path, 'labelmap.pbtxt') + '"' + "\n\
+  shuffle: false\n\
+  num_readers: 1\n\
+}\n\
+    ")
+    return
 
-model {\
-  ssd {\
-    num_classes: """ + str(len(labels)) + "\\
-    box_coder {\\
-      faster_rcnn_box_coder {\
-        y_scale: 10.0\
-        x_scale: 10.0\
-        height_scale: 5.0\
-        width_scale: 5.0\
-      }\
-    }\
-    matcher {\
-      argmax_matcher {\
-        matched_threshold: 0.5\
-        unmatched_threshold: 0.5\
-        ignore_thresholds: false\
-        negatives_lower_than_unmatched: true\
-        force_match_for_each_row: true\
-      }\
-    }\
-    similarity_calculator {\
-      iou_similarity {\
-      }\
-    }\
-    anchor_generator {\
-      ssd_anchor_generator {\
-        num_layers: 5\
-        min_scale: 0.2\
-        max_scale: 0.95\
-        aspect_ratios: 1.0\
-        aspect_ratios: 2.0\
-        aspect_ratios: 0.5\
-        aspect_ratios: 3.0\
-        aspect_ratios: 0.3333\
-      }\
-    }\
-    image_resizer {\
-      fixed_shape_resizer {\
-        height: 256\
-        width: 256\
-      }\
-    }\
-    box_predictor {\
-      convolutional_box_predictor {\
-        min_depth: 0\
-        max_depth: 0\
-        num_layers_before_predictor: 0\
-        use_dropout: false\
-        dropout_keep_probability: 0.8\
-        kernel_size: 1\
-        box_code_size: 4\
-        apply_sigmoid_to_scores: false\
-        conv_hyperparams {\
-          activation: RELU_6,\
-          regularizer {\
-            l2_regularizer {\
-              weight: 0.00004\
-            }\
-          }\
-          initializer {\
-            truncated_normal_initializer {\
-              stddev: 0.03\
-              mean: 0.0\
-            }\
-          }\
-          batch_norm {\
-            train: true,\
-            scale: true,\
-            center: true,\
-            decay: 0.9997,\
-            epsilon: 0.001,\
-          }\
-        }\
-      }\
-    }\
-    feature_extractor {\
-      type: 'embedded_ssd_mobilenet_v1'\
-      min_depth: 16\
-      depth_multiplier: 0.125\
-      conv_hyperparams {\
-        activation: RELU_6,\
-        regularizer {\
-          l2_regularizer {\
-            weight: 0.00004\
-          }\
-        }\
-        initializer {\
-          truncated_normal_initializer {\
-            stddev: 0.03\
-            mean: 0.0\
-          }\
-        }\
-        batch_norm {\
-          train: true,\
-          scale: true,\
-          center: true,\
-          decay: 0.9997,\
-          epsilon: 0.001,\
-        }\
-      }\
-    }\
-    loss {\
-      classification_loss {\
-        weighted_sigmoid {\
-        }\
-      }\
-      localization_loss {\
-        weighted_smooth_l1 {\
-        }\
-      }\
-      hard_example_miner {\
-        num_hard_examples: 3000\
-        iou_threshold: 0.99\
-        loss_type: CLASSIFICATION\
-        max_negatives_per_positive: 3\
-        min_negatives_per_image: 0\
-      }\
-      classification_weight: 1.0\
-      localization_weight: 1.0\
-    }\
-    normalize_loss_by_num_matches: true\
-    post_processing {\
-      batch_non_max_suppression {\
-        score_threshold: 1e-8\
-        iou_threshold: 0.6\
-        max_detections_per_class: 100\
-        max_total_detections: 100\
-      }\
-      score_converter: SIGMOID\
-    }\
-  }\
-}\
-\
-train_config: {\
-  batch_size: 32\
-  optimizer {\
-    rms_prop_optimizer: {\
-      learning_rate: {\
-        exponential_decay_learning_rate {\
-          initial_learning_rate: 0.004\
-          decay_steps: 800720\
-          decay_factor: 0.95\
-        }\
-      }\
-      momentum_optimizer_value: 0.9\
-      decay: 0.9\
-      epsilon: 1.0\
-    }\
-  }\
-  fine_tune_checkpoint: "/PATH_TO_BE_CONFIGU\RED/model.ckpt"
-  data_augmentation_options {\
-    random_horizontal_flip {\
-    }\
-  }\
-  data_augmentation_options {\
-    ssd_random_crop {\
-    }\
-  }\
-}\
-\
-train_input_reader: {\
-  tf_record_input_reader {\
-    input_path: """ + '"' +  + '"' + """\
-  }\
-  label_map_path: """+ '"' +  + '"' + """\
-}\
-\
-eval_config: {\
-  num_examples: 8000\
-  use_moving_averages: true\
-}\
-\
-eval_input_reader: {\
-  tf_record_input_reader {\
-    input_path: """+ '"' +  + '"' + """\
-  }\
-  label_map_path: """+ '"' +  + '"' + """\
-  shuffle: false\
-  num_readers: 1\
-}\
-        """)\
-    return\
-\
-\
-def main(_):\
+
+def main(_):
     # assert FLAGS.train_image_dir, '`train_\image_dir` missing.'
     # assert FLAGS.val_image_dir, '`val_imag\e_dir` missing.'
     # assert FLAGS.test_image_dir, '`test_im\age_dir` missing.'
@@ -454,10 +455,9 @@ def main(_):\
     # assert FLAGS.testdev_annotations_file,\ '`testdev_annotations_file` missing.'
     # labels, attributes, images = readAnnot\ations('/home/elias/Desktop/web/morvision/LabelMeAnnotationTool/Annotations/robots',
     #                 '/home/elias/Desktop/w\eb/morvision/LabelMeAnnotationTool/Images/robots',
-    #                 None)\
-    # print(images)\
-\
-    annotationsToExamples('/home/elias/Deskt\op/web/morvision/LabelMeAnnotationTool/Annotations/robots',
+    #                 None)
+    # print(images)
+    annotationsToExamples('/home/elias/Desktop/web/morvision/LabelMeAnnotationTool/Annotations/robots',
                           '/home/elias/Desktop/web/morvision/LabelMeAnnotationTool/Images/robots',
                           '/home/elias/Desktop/web/morvision/example/',
                           None)

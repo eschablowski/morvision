@@ -1,6 +1,7 @@
 # MorVision
 
 > Note that this is only tested on Ubuntu and probably does NOT run on windows
+> !!!Do **NOT** update models repository here without testing it first!!!
 
 ## Installation
 
@@ -24,7 +25,7 @@ sudo pip install matplotlib jupyter
 ```
 2. run
 ```bash
-protoc models/research/object_detection/protos/*.proto --python_out=.
+protoc models/research/object_detection/protos/*.proto --python_out=./models/research
 ```
 3. run or add absolute paths to .bashrc
 ```bash
@@ -38,6 +39,7 @@ python models/object_detection/builders/model_builder_test.py
 ## Annotation
 
 Just run `npm start` inside of the LabelMeAnnotationTool folder
+> This starts a webserver on [localhost:8080](localhost:8080/tool.html)
 
 ## Creating Data
 
@@ -50,7 +52,7 @@ python make_model/make_model.py
 ### Running Tensorflow
 
 ```bash
-python models/research/object_detection/train.py --train_dir=./temp --pipeline_config_path=/home/elias/Desktop/web/morvision/make_model/embedded_ssd_mobilenet_v1_coco.config
+python models/research/object_detection/train.py --train_dir=./temp --pipeline_config_path=`pwd /make_model/embedded_ssd_mobilenet_v1_coco.config`
 ```
 
 ### Running TensorBoard
