@@ -199,7 +199,9 @@ function handler() {
           selectObject(a);
           console.log('select');
         } 
-        
+        else{
+          selectObject(a);
+        }
     };
     
     // Handles when the user moves the mouse away from an annotation link.

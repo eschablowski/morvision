@@ -6,6 +6,7 @@ var archiver = require('archiver');
 var parseXML = require('xml-parser');
 var toXML = require('object-to-xml');
 var fg = require('fast-glob');
+let lwip = require('lwip');
 
 
 var app = express();
@@ -345,7 +346,52 @@ app.post('/annotationTools/perl/write_logfile.cgi', function (req, res) {
     res.end();
 });
 
-
+app.get('/Images/:folder/:image', function (req, res) {
+    lwip.open(toolHome('Images', req.params.folder, req.params.image), 'jpg', function (err, img) {
+        if (err) {
+            res.sendStatus(500);
+            return;
+        }
+        var batch = img.batch();
+        var index = 0;
+        if (fs.existsSync(toolHome('Annotations', req.params.folder, path.parse(req.params.image).name + '.xml')))
+            fs.readFile(toolHome('Annotations', req.params.folder, path.parse(req.params.image).name + '.xml'), function (err, anns) {
+                anns = parseXML(anns.toString());
+                anns = anns.root.children;
+                var masks = [];
+                anns.forEach(function (val) {
+                    if (val.name == 'object')
+                        val.children.forEach(function (val) {
+                            if (val.name == 'segm')
+                                val.children.forEach(function (val) {
+                                    if (val.name == 'mask')
+                                        masks.push(val.content);
+                                })
+                        })
+                });
+                let read = function (indx) {
+                    lwip.open(toolHome('Masks', req.params.folder, masks[indx]), function (err, mask) {
+                        batch.paste(0, 0, mask);
+                        indx != masks.length - 1 ? read(++indx) : (function () {
+                            batch = batch.exec(function (err, image) {
+                                if (err) {
+                                    res.sendStatus(500);
+                                    return;
+                                }
+                                image.toBuffer('jpg', function (err, data) {
+                                    res.contentType('image/jpeg');
+                                    res.end(data);
+                                });
+                            });
+                        })();
+                    });
+                }
+                read(0);
+            });
+        else
+            res.sendFile(toolHome('Images', req.params.folder, req.params.image));
+    });
+});
 app.use(express.static(path.normalize(path.join(__dirname, '..', '..'))));
 
 app.use(function (req, res) {
