@@ -415,9 +415,11 @@ train_config: {\n\
   data_augmentation_options {\n\
     random_horizontal_flip {\n\
     }\n\
+    random_rgb_to_gray {\n\
+    }\n\
   }\n\
   data_augmentation_options {\n\
-    ssd_random_crop {\n\
+    ssd_random_crop_pad {\n\
     }\n\
   }\n\
 }\n\
@@ -439,7 +441,7 @@ eval_input_reader: {\n\
     input_path: " + '"' + os.path.join(output_path, 'output.record') + '"' + "\n\
   }\n\
   label_map_path: " + '"' + os.path.join(output_path, 'labelmap.pbtxt') + '"' + "\n\
-  shuffle: false\n\
+  shuffle: true\n\
   num_readers: 1\n\
 }\n\
     ")
@@ -457,9 +459,9 @@ def main(_):
     #                 '/home/elias/Desktop/w\eb/morvision/LabelMeAnnotationTool/Images/robots',
     #                 None)
     # print(images)
-    annotationsToExamples('/home/elias/Desktop/web/morvision/LabelMeAnnotationTool/Annotations/robots',
-                          '/home/elias/Desktop/web/morvision/LabelMeAnnotationTool/Images/robots',
-                          '/home/elias/Desktop/web/morvision/example/',
+    annotationsToExamples('./LabelMeAnnotationTool/Annotations/robots',
+                          './LabelMeAnnotationTool/Images/robots',
+                          './example/',
                           None)
 
 
