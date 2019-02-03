@@ -1,0 +1,12 @@
+item {
+  id: 1
+  name: 'Hatch Panel'
+}
+item {
+  id: 2
+  name: 'Cargo'
+}
+item {
+  id: 3
+  name: 'Tape'
+}
